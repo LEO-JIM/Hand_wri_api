@@ -18,9 +18,11 @@ FONT_MAP = {
 def write():
     if request.method == 'OPTIONS':
         return '', 204
-
+        
     data = request.get_json()
-    print("[DEBUG] Received data:", data)
+    print("[DEBUG] Received raw data:", request.data)
+    print("[DEBUG] Parsed JSON data:", data)
+
     text = data.get("text", "")
     style = data.get("style", "sloppy1")
     print(f"[DEBUG] Text: {text}, Style: {style}")
