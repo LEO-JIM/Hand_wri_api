@@ -32,3 +32,9 @@ def write():
     plt.close()
 
     return send_file(filename, mimetype='image/png')
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
