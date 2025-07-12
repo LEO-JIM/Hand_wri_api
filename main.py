@@ -20,11 +20,14 @@ def write():
         return '', 204
 
     data = request.get_json()
+    print("[DEBUG] Received data:", data)
     text = data.get("text", "")
     style = data.get("style", "sloppy1")
+    print(f"[DEBUG] Text: {text}, Style: {style}")
 
     font_path = FONT_MAP.get(style)
     if not font_path or not os.path.exists(font_path):
+        print("[ERROR] Invalid handwriting style!")
         return abort(400, "Invalid handwriting style")
 
     font_prop = font_manager.FontProperties(fname=font_path)
