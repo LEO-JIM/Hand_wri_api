@@ -9,8 +9,8 @@ app = Flask(__name__)
 CORS(app) 
 
 FONT_MAP = {
-    "sloppy1": "fonts/Sloppy_Hand.ttf",
-    "rush": "fonts/zai_NicolasSloppyPen.ttf"
+    "sloppy1": "Sloppy_Hand.ttf",
+    "rush": "zai_NicolasSloppyPen.ttf"
 }
 
 
