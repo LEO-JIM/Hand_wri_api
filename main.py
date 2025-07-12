@@ -14,7 +14,7 @@ FONT_MAP = {
 }
 
 
-@app.route('/write', methods=['POST'], 'OPTIONS')
+@app.route('/write', methods=['POST', 'OPTIONS'])
 def write():
     if request.method == 'OPTIONS':
         return '', 204
