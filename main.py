@@ -1,10 +1,12 @@
 from flask import Flask, request, send_file, abort
+from flask_cors import CORS 
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 import os
 import uuid
 
 app = Flask(__name__)
+CORS(app) 
 
 FONT_MAP = {
     "sloppy1": "fonts/Sloppy_Hand.ttf",
