@@ -29,7 +29,7 @@ def write():
 
     # === Step 2: Normalize and clean text ===
     # Replace tabs with spaces
-    text = text.replace("\t", "    ")
+    text = raw_text.replace("\t", "    ")
 
     # Optional: escape backslashes and quotes (visual safety)
     text = text.replace("\\", "\\\\").replace("\"", "\\\"")
