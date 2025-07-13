@@ -5,20 +5,20 @@ from matplotlib import font_manager
 import os
 import uuid
 import textwrap
-import zipfile
+from PIL import Image
 
 app = Flask(__name__)
-CORS(app)
+CORS(app) 
 
 FONT_MAP = {
     "sloppy1": "Sloppy_Hand.ttf",
     "rush": "zai_NicolasSloppyPen.ttf"
 }
 
-A4_SIZE = (8.27, 11.69)  # A4 size in inches
-FONT_SIZE = 20           # Typical college homework
-LINE_HEIGHT = 0.05       # In relative figure coordinates, adjust as needed
-MAX_CHARS_PER_LINE = 45  # Adjust for handwritten style and font size
+# A4 size in inches
+A4_WIDTH_IN = 8.3
+A4_HEIGHT_IN = 11.7
+DPI = 150  # Use higher DPI for clarity
 
 @app.route('/write', methods=['POST', 'OPTIONS'])
 def write():
@@ -33,43 +33,61 @@ def write():
         return abort(400, "Invalid handwriting style")
 
     font_prop = font_manager.FontProperties(fname=font_path)
-    logical_lines = text.split("\n")
-    # Calculate how many lines fit per page
-    lines_per_page = int((1.0 - 0.07) / LINE_HEIGHT)  # leave a top margin
+    # Real handwriting font size (college homework style)
+    font_size = 16
 
+    # Page config
+    page_width, page_height = A4_WIDTH_IN, A4_HEIGHT_IN
+    line_height = 0.055  # Spacing between lines (in figure rel units)
+    max_chars_per_line = 48  # fits A4 horizontally for typical handwriting font
+    max_lines_per_page = int((0.9 - 0.07) // line_height)  # 0.9 to 0.07 Y range
+
+    # Split by \n (manual breaks), then wrap
+    logical_lines = text.split("\n")
     wrapped_lines = []
     for logical_line in logical_lines:
-        wrapped_lines.extend(textwrap.wrap(logical_line, width=MAX_CHARS_PER_LINE) or [''])  # handle blank lines
+        wrapped_lines.extend(textwrap.wrap(logical_line, width=max_chars_per_line) or [""])
 
-    # Split into pages
-    pages = [wrapped_lines[i:i+lines_per_page] for i in range(0, len(wrapped_lines), lines_per_page)]
-    filenames = []
-    for page_num, page_lines in enumerate(pages, 1):
-        fig, ax = plt.subplots(figsize=A4_SIZE)
+    # Paginate
+    pages = []
+    for i in range(0, len(wrapped_lines), max_lines_per_page):
+        pages.append(wrapped_lines[i:i + max_lines_per_page])
+
+    image_files = []
+    for page in pages:
+        fig, ax = plt.subplots(figsize=(page_width, page_height), dpi=DPI)
         ax.axis('off')
-        y = 0.95
-        for line in page_lines:
-            ax.text(0.06, y, line, fontsize=FONT_SIZE, fontproperties=font_prop, va='top')
-            y -= LINE_HEIGHT
-        filename = f"{uuid.uuid4()}_page{page_num}.png"
-        plt.savefig(filename, bbox_inches='tight', dpi=300)
+        y = 0.93  # Start a little down from the top
+        for line in page:
+            ax.text(0.07, y, line, fontsize=font_size, fontproperties=font_prop, va='top')
+            y -= line_height
+        filename = f"{uuid.uuid4()}.png"
+        plt.savefig(filename, bbox_inches='tight', pad_inches=0.4)
         plt.close()
-        filenames.append(filename)
+        image_files.append(filename)
 
-    # If only one page, just return that
-    if len(filenames) == 1:
-        return send_file(filenames[0], mimetype='image/png')
+    # Combine pages vertically if more than one page
+    if len(image_files) == 1:
+        result_filename = image_files[0]
     else:
-        # Otherwise, zip them
-        zip_filename = f"{uuid.uuid4()}_pages.zip"
-        with zipfile.ZipFile(zip_filename, 'w') as zipf:
-            for f in filenames:
-                zipf.write(f)
-        # Clean up png files after zipping
-        for f in filenames:
+        images = [Image.open(f) for f in image_files]
+        widths, heights = zip(*(img.size for img in images))
+        total_height = sum(heights)
+        max_width = max(widths)
+        combined_image = Image.new('RGBA', (max_width, total_height), (255, 255, 255, 255))
+        y_offset = 0
+        for im in images:
+            combined_image.paste(im, (0, y_offset))
+            y_offset += im.size[1]
+        result_filename = f"{uuid.uuid4()}_combined.png"
+        combined_image.save(result_filename)
+        # cleanup temporary images
+        for f in image_files:
             os.remove(f)
-        return send_file(zip_filename, mimetype='application/zip')
+
+    return send_file(result_filename, mimetype='image/png')
 
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
