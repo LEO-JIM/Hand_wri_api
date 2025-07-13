@@ -21,7 +21,7 @@ def write():
 
     data = request.get_json()
 
-    text = data.get("text", "")
+    raw_text = data.get("text", "")
     style = data.get("style", "sloppy1")
 
     # === Step 2: Normalize and clean text ===
