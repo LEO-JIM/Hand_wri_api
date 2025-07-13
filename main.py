@@ -24,6 +24,8 @@ def write():
     raw_text = data.get("text", "")
     style = data.get("style", "sloppy1")
 
+    #this is the JSON conversion code
+
     # === Step 2: Normalize and clean text ===
     # Replace all line endings with \n
     text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
@@ -46,7 +48,16 @@ def write():
     filename = f"{uuid.uuid4()}.png"
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    ax.text(0.05, 0.9, text, fontsize=16, fontproperties=font_prop, wrap=True)
+
+    #here i need to change line
+    lines = text.split("\n")
+    y = 0.95  # Start from top
+    line_height = 0.07  # Adjust for spacing
+
+    for line in lines:
+        ax.text(0.05, y, line, fontsize=16, fontproperties=font_prop, va='top')
+        y -= line_height
+
     ax.axis('off')
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
