@@ -26,26 +26,9 @@ def write():
     
     data = request.get_json()
 
-    raw_text = data.get("text", "")
+    text = data.get("text", "")
     style = data.get("style", "sloppy1")
-
-    #this is the JSON conversion code
-
-    # === Step 2: Normalize and clean text ===
-    # Replace tabs with spaces
     
-    text = raw_text.replace("\t", "    ")
-
-    # Convert escaped newlines from Make back into real newlines
-    text = text.replace("\\n", "\n")
-
-    # Optional: escape backslashes and quotes (visual safety)
-    text = text.replace("\\", "\\\\").replace("\"", "\\\"")
-
-    # Optional: Remove emojis or non-printable characters
-    text = ''.join(char for char in text if char.isprintable())
-    
-
     font_path = FONT_MAP.get(style)
     if not font_path or not os.path.exists(font_path):
         return abort(400, "Invalid handwriting style")
