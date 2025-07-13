@@ -23,6 +23,19 @@ def write():
 
     text = data.get("text", "")
     style = data.get("style", "sloppy1")
+
+    # === Step 2: Normalize and clean text ===
+    # Replace all line endings with \n
+    text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
+    
+    # Replace tabs with spaces
+    text = text.replace("\t", "    ")
+
+    # Optional: escape backslashes and quotes (visual safety)
+    text = text.replace("\\", "\\\\").replace("\"", "\\\"")
+
+    # Optional: Remove emojis or non-printable characters
+    text = ''.join(char for char in text if char.isprintable())
     
 
     font_path = FONT_MAP.get(style)
