@@ -29,7 +29,11 @@ def write():
 
     # === Step 2: Normalize and clean text ===
     # Replace tabs with spaces
+    
     text = raw_text.replace("\t", "    ")
+
+    # Convert escaped newlines from Make back into real newlines
+    text = text.replace("\\n", "\n")
 
     # Optional: escape backslashes and quotes (visual safety)
     text = text.replace("\\", "\\\\").replace("\"", "\\\"")
