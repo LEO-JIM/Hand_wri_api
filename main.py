@@ -57,7 +57,6 @@ def write():
             y -= line_height
 
 
-    
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 
