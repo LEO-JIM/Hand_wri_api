@@ -20,6 +20,10 @@ def write():
     if request.method == 'OPTIONS':
         return '', 204
 
+
+    print("RAW REQUEST DATA:", request.data)
+    print("JSON DATA:", request.get_json())
+    
     data = request.get_json()
 
     raw_text = data.get("text", "")
