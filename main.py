@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager
 import os
 import uuid
+import textwrap
 
 app = Flask(__name__)
 CORS(app) 
@@ -27,9 +28,6 @@ def write():
     #this is the JSON conversion code
 
     # === Step 2: Normalize and clean text ===
-    # Replace all line endings with \n
-    text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
-    
     # Replace tabs with spaces
     text = text.replace("\t", "    ")
 
@@ -48,17 +46,27 @@ def write():
     filename = f"{uuid.uuid4()}.png"
 
     fig, ax = plt.subplots(figsize=(8, 6))
-
-    #here i need to change line
-    lines = text.split("\n")
-    y = 0.95  # Start from top
-    line_height = 0.07  # Adjust for spacing
-
-    for line in lines:
-        ax.text(0.05, y, line, fontsize=16, fontproperties=font_prop, va='top')
-        y -= line_height
-
     ax.axis('off')
+    import textwrap
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.axis('off')
+    
+    # Split by \n (manual breaks)
+    logical_lines = text.split("\n")
+    y = 0.95
+    line_height = 0.07
+    max_chars_per_line = 50  # Wrap after ~50 characters (adjust as needed)
+    
+    for logical_line in logical_lines:
+        # Auto-wrap long lines
+        wrapped_lines = textwrap.wrap(logical_line, width=max_chars_per_line)
+        for wrapped_line in wrapped_lines:
+            ax.text(0.05, y, wrapped_line, fontsize=16, fontproperties=font_prop, va='top')
+            y -= line_height
+
+
+    
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 
