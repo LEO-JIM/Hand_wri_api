@@ -51,7 +51,7 @@ def write():
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.axis('off')
-    import textwrap
+    
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.axis('off')
