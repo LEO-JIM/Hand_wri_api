@@ -1,12 +1,10 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, send_file, abort
 from flask_cors import CORS
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 import os
 import uuid
 import textwrap
-from PIL import Image
-import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -16,12 +14,11 @@ FONT_MAP = {
     "rush": "zai_NicolasSloppyPen.ttf"
 }
 
-# --- Config ---
 A4_WIDTH_IN = 8.3
 A4_HEIGHT_IN = 11.7
-DPI = 150  # Print-like clarity
-FONT_SIZE = 13  # Small but readable for homework
-LINE_HEIGHT = 0.045  # Enough to fit many lines per page
+DPI = 150
+FONT_SIZE = 13
+LINE_HEIGHT = 0.045
 MARGIN_LEFT = 0.07
 MARGIN_TOP = 0.95
 
@@ -33,6 +30,8 @@ def write():
     data = request.get_json()
     text = data.get("text", "")
     style = data.get("style", "sloppy1")
+    page_idx = int(request.args.get("page", 0))  # Default to first page
+
     font_path = FONT_MAP.get(style)
     if not font_path or not os.path.exists(font_path):
         return abort(400, "Invalid handwriting style")
@@ -41,11 +40,10 @@ def write():
 
     # --- Page calculation ---
     page_width, page_height = A4_WIDTH_IN, A4_HEIGHT_IN
-    max_chars_per_line = 60  # Smaller font, more words
-    # Estimate: from margin-top down, each line takes LINE_HEIGHT units, stop before off-page
+    max_chars_per_line = 60
     max_lines_per_page = int((MARGIN_TOP - 0.07) // LINE_HEIGHT)
 
-    # Wrap text per line, respect manual \n breaks
+    # Wrap text, respect manual \n
     logical_lines = text.split("\n")
     wrapped_lines = []
     for logical_line in logical_lines:
@@ -53,36 +51,37 @@ def write():
         if wraps:
             wrapped_lines.extend(wraps)
         else:
-            wrapped_lines.append("")  # For empty lines
+            wrapped_lines.append("")
 
     # --- Paging ---
     pages = []
     for i in range(0, len(wrapped_lines), max_lines_per_page):
         pages.append(wrapped_lines[i:i + max_lines_per_page])
 
-    # --- Render each page ---
-    base64_images = []
-    for page in pages:
-        fig, ax = plt.subplots(figsize=(page_width, page_height), dpi=DPI)
-        ax.axis('off')
-        y = MARGIN_TOP
-        for line in page:
-            ax.text(MARGIN_LEFT, y, line, fontsize=FONT_SIZE, fontproperties=font_prop, va='top')
-            y -= LINE_HEIGHT
-        filename = f"{uuid.uuid4()}.png"
-        plt.savefig(filename, bbox_inches='tight', pad_inches=0.4)
-        plt.close()
+    # --- Render only requested page ---
+    if page_idx < 0 or page_idx >= len(pages):
+        return abort(404, f"Page {page_idx} not found")
 
-        # Read and encode image as base64 data URI
-        with open(filename, "rb") as img_f:
-            img_bytes = img_f.read()
-            b64 = base64.b64encode(img_bytes).decode()
-            data_uri = f"data:image/png;base64,{b64}"
-            base64_images.append(data_uri)
-        os.remove(filename)  # cleanup
+    lines = pages[page_idx]
+    fig, ax = plt.subplots(figsize=(page_width, page_height), dpi=DPI)
+    ax.axis('off')
+    y = MARGIN_TOP
+    for line in lines:
+        ax.text(MARGIN_LEFT, y, line, fontsize=FONT_SIZE, fontproperties=font_prop, va='top')
+        y -= LINE_HEIGHT
 
-    # --- Return all pages as array ---
-    return jsonify({"images": base64_images})
+    filename = f"{uuid.uuid4()}.png"
+    plt.savefig(filename, bbox_inches='tight', pad_inches=0.4)
+    plt.close()
+
+    # Return the file directly
+    response = send_file(filename, mimetype='image/png')
+    # Optionally cleanup file after sending
+    try:
+        os.remove(filename)
+    except Exception:
+        pass
+    return response
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
