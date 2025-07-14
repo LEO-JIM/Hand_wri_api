@@ -17,8 +17,8 @@ FONT_MAP = {
 A4_WIDTH_IN = 8.3
 A4_HEIGHT_IN = 11.7
 DPI = 150
-FONT_SIZE = 13
-LINE_HEIGHT = 0.045
+FONT_SIZE = 11
+LINE_HEIGHT = 0.035
 MARGIN_LEFT = 0.07
 MARGIN_TOP = 0.95
 
@@ -40,7 +40,7 @@ def write():
 
     # --- Page calculation ---
     page_width, page_height = A4_WIDTH_IN, A4_HEIGHT_IN
-    max_chars_per_line = 80
+    max_chars_per_line = 90
     max_lines_per_page = int((MARGIN_TOP - 0.07) // LINE_HEIGHT)
 
     # Wrap text, respect manual \n
