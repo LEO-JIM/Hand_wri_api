@@ -40,7 +40,7 @@ def write():
 
     # --- Page calculation ---
     page_width, page_height = A4_WIDTH_IN, A4_HEIGHT_IN
-    max_chars_per_line = 60
+    max_chars_per_line = 80
     max_lines_per_page = int((MARGIN_TOP - 0.07) // LINE_HEIGHT)
 
     # Wrap text, respect manual \n
