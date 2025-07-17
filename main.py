@@ -32,7 +32,7 @@ MARGIN_LEFT_IN  = 0.7    # inches
 MARGIN_TOP_IN   = 0.7    # inches down from top
 FONT_SIZE_PT    = 12     # points
 LINE_HEIGHT_IN  = 0.3    # inches between lines
-CHARS_PER_LINE  = 90     # for textwrap
+CHARS_PER_LINE  = 110     # for textwrap
 
 @app.route('/write', methods=['POST', 'OPTIONS'])
 def write():
