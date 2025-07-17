@@ -76,16 +76,25 @@ def write():
         return abort(404, f"Page {page} out of range")
 
     # 5) Render requested page to PDF
-    fname = f"{uuid.uuid4()}.pdf"
-    c = canvas.Canvas(fname, pagesize=A4)
-    c.setFont(ps_font_name, FONT_SIZE_PT)
-
-    y = margin_top_pt
-    for line in pages[page]:
-        c.drawString(MARGIN_LEFT_IN * inch, y, line)
-        y -= line_height_pt
-
-    c.showPage()
+    filename = f"{uuid.uuid4()}.pdf"
+    c = canvas.Canvas(filename, pagesize=A4)
+    width, height = A4
+    
+    # Convert layout units
+    margin_left_pt = MARGIN_LEFT * 72
+    margin_top_pt = height - (MARGIN_TOP * 72)
+    line_height_pt = LINE_HEIGHT * 72
+    font_size_pt = FONT_SIZE
+    
+    c.setFont(style, font_size_pt)
+    
+    for page_lines in pages:
+        y = margin_top_pt
+        for line in page_lines:
+            c.drawString(margin_left_pt, y, line)
+            y -= line_height_pt
+        c.showPage()  # Go to next page (or finalize if last)
+    
     c.save()
 
     # 6) Send & clean up
