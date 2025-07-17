@@ -90,6 +90,7 @@ def write():
     
     for page_lines in pages:
         y = margin_top_pt
+        c.setFont(ps_font_name, font_size_pt)
         for line in page_lines:
             c.drawString(margin_left_pt, y, line)
             y -= line_height_pt
