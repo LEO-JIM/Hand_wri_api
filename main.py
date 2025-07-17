@@ -81,10 +81,10 @@ def write():
     width, height = A4
     
     # Convert layout units
-    margin_left_pt = MARGIN_LEFT * 72
-    margin_top_pt = height - (MARGIN_TOP * 72)
-    line_height_pt = LINE_HEIGHT * 72
-    font_size_pt = FONT_SIZE
+    margin_left_pt = MARGIN_LEFT_IN * 72
+    margin_top_pt = height - (MARGIN_TOP_IN * 72)
+    line_height_pt = LINE_HEIGHT_IN * 72
+    font_size_pt = FONT_SIZE_PT
     
     c.setFont(style, font_size_pt)
     
