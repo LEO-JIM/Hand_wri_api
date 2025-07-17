@@ -86,7 +86,7 @@ def write():
     line_height_pt = LINE_HEIGHT_IN * 72
     font_size_pt = FONT_SIZE_PT
     
-    c.setFont(style, font_size_pt)
+    c.setFont(ps_font_name, font_size_pt)
     
     for page_lines in pages:
         y = margin_top_pt
@@ -98,9 +98,9 @@ def write():
     c.save()
 
     # 6) Send & clean up
-    rv = send_file(fname, mimetype="application/pdf")
+    rv = send_file(filename, mimetype="application/pdf")
     try:
-        os.remove(fname)
+        os.remove(filename)
     except OSError:
         pass
     return rv
