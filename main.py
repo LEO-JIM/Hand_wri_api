@@ -7,90 +7,94 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.units import inch
 
 app = Flask(__name__)
 CORS(app)
 
-FONT_MAP = {
-    "sloppy1": "Sloppy_Hand.ttf",
-    "rush": "zai_NicolasSloppyPen.ttf"
+# --- Configuration ---
+FONT_FILES = {
+    "sloppy1": ("SloppyHand",  "Sloppy_Hand.ttf"),
+    "rush":    ("RushPen",      "zai_NicolasSloppyPen.ttf"),
 }
 
-A4_WIDTH_IN = 8.3
-A4_HEIGHT_IN = 11.7
-DPI = 150
-FONT_SIZE = 11
-LINE_HEIGHT = 0.035
-MARGIN_LEFT = 0.07
-MARGIN_TOP = 0.95
+# register fonts once at startup
+HERE = os.path.dirname(__file__)
+for key, (ps_name, filename) in FONT_FILES.items():
+    path = os.path.join(HERE, filename)
+    if not os.path.exists(path):
+        raise RuntimeError(f"Font file not found: {path}")
+    pdfmetrics.registerFont(TTFont(ps_name, path))
+
+# Page geometry (A4)
+PAGE_WIDTH_PT, PAGE_HEIGHT_PT = A4
+MARGIN_LEFT_IN  = 0.7    # inches
+MARGIN_TOP_IN   = 0.7    # inches down from top
+FONT_SIZE_PT    = 12     # points
+LINE_HEIGHT_IN  = 0.3    # inches between lines
+CHARS_PER_LINE  = 90     # for textwrap
 
 @app.route('/write', methods=['POST', 'OPTIONS'])
 def write():
     if request.method == 'OPTIONS':
         return '', 204
 
-    data = request.get_json()
-    text = data.get("text", "")
+    # 1) Parse input
+    data  = request.get_json(force=True)
+    raw   = data.get("text", "")
     style = data.get("style", "sloppy1")
-    page_idx = int(request.args.get("page", 0))  # Default to first page
+    page  = int(request.args.get("page", 0))
 
-    font_path = FONT_MAP.get(style)
-    if not font_path or not os.path.exists(font_path):
+    # 2) Validate font style
+    if style not in FONT_FILES:
         return abort(400, "Invalid handwriting style")
+    ps_font_name = FONT_FILES[style][0]
 
-    for style, font_file in FONT_MAP.items():
-        if os.path.exists(font_file):
-            pdfmetrics.registerFont(TTFont(style, font_file))
-
-    # --- Page calculation ---
-    page_width, page_height = A4_WIDTH_IN, A4_HEIGHT_IN
-    max_chars_per_line = 90
-    max_lines_per_page = int((MARGIN_TOP - 0.07) // LINE_HEIGHT)
-
-    # Wrap text, respect manual \n
-    logical_lines = text.split("\n")
-    wrapped_lines = []
-    for logical_line in logical_lines:
-        wraps = textwrap.wrap(logical_line, width=max_chars_per_line)
-        if wraps:
-            wrapped_lines.extend(wraps)
+    # 3) Normalize and split text into wrapped lines
+    #    respect manual \n, then wrap long lines
+    text = raw.replace("\r\n", "\n").replace("\r", "\n")
+    logical = text.split("\n")
+    wrapped = []
+    for L in logical:
+        if L.strip() == "":
+            # preserve blank lines
+            wrapped.append("")
         else:
-            wrapped_lines.append("")
+            wrapped.extend(textwrap.wrap(L, width=CHARS_PER_LINE))
 
-    # --- Paging ---
-    pages = []
-    for i in range(0, len(wrapped_lines), max_lines_per_page):
-        pages.append(wrapped_lines[i:i + max_lines_per_page])
+    # 4) Pagination
+    # how many lines fit per page?
+    margin_top_pt   = PAGE_HEIGHT_PT - MARGIN_TOP_IN * inch
+    line_height_pt  = LINE_HEIGHT_IN * inch
+    lines_per_page  = int((margin_top_pt) // line_height_pt)
+    pages = [
+        wrapped[i : i + lines_per_page]
+        for i in range(0, len(wrapped), lines_per_page)
+    ]
 
-    # --- Render only requested page ---
-    if page_idx < 0 or page_idx >= len(pages):
-        return abort(404, f"Page {page_idx} not found")
+    if page < 0 or page >= len(pages):
+        return abort(404, f"Page {page} out of range")
 
-    lines = pages[page_idx]
-    filename = f"{uuid.uuid4()}.pdf"
-    c = canvas.Canvas(filename, pagesize=A4)
-    width, height = A4
+    # 5) Render requested page to PDF
+    fname = f"{uuid.uuid4()}.pdf"
+    c = canvas.Canvas(fname, pagesize=A4)
+    c.setFont(ps_font_name, FONT_SIZE_PT)
 
-    # Convert margins and line height from inches to points (1 inch = 72 points)
-    margin_left_pt = MARGIN_LEFT * 72
-    margin_top_pt = height - (MARGIN_TOP * 72)
-    line_height_pt = LINE_HEIGHT * 72
-    font_size_pt = FONT_SIZE
-
-    c.setFont(style, font_size_pt)
     y = margin_top_pt
-    for line in lines:
-        c.drawString(margin_left_pt, y, line)
+    for line in pages[page]:
+        c.drawString(MARGIN_LEFT_IN * inch, y, line)
         y -= line_height_pt
 
+    c.showPage()
     c.save()
 
-    response = send_file(filename, mimetype='application/pdf')
+    # 6) Send & clean up
+    rv = send_file(fname, mimetype="application/pdf")
     try:
-        os.remove(filename)
-    except Exception:
+        os.remove(fname)
+    except OSError:
         pass
-    return response
+    return rv
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
