@@ -1,10 +1,12 @@
 from flask import Flask, request, send_file, abort
 from flask_cors import CORS
-import matplotlib.pyplot as plt
-from matplotlib import font_manager
 import os
 import uuid
 import textwrap
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 app = Flask(__name__)
 CORS(app)
@@ -36,7 +38,9 @@ def write():
     if not font_path or not os.path.exists(font_path):
         return abort(400, "Invalid handwriting style")
 
-    font_prop = font_manager.FontProperties(fname=font_path)
+    for style, font_file in FONT_MAP.items():
+        if os.path.exists(font_file):
+            pdfmetrics.registerFont(TTFont(style, font_file))
 
     # --- Page calculation ---
     page_width, page_height = A4_WIDTH_IN, A4_HEIGHT_IN
@@ -63,20 +67,25 @@ def write():
         return abort(404, f"Page {page_idx} not found")
 
     lines = pages[page_idx]
-    fig, ax = plt.subplots(figsize=(page_width, page_height), dpi=DPI)
-    ax.axis('off')
-    y = MARGIN_TOP
+    filename = f"{uuid.uuid4()}.pdf"
+    c = canvas.Canvas(filename, pagesize=A4)
+    width, height = A4
+
+    # Convert margins and line height from inches to points (1 inch = 72 points)
+    margin_left_pt = MARGIN_LEFT * 72
+    margin_top_pt = height - (MARGIN_TOP * 72)
+    line_height_pt = LINE_HEIGHT * 72
+    font_size_pt = FONT_SIZE
+
+    c.setFont(style, font_size_pt)
+    y = margin_top_pt
     for line in lines:
-        ax.text(MARGIN_LEFT, y, line, fontsize=FONT_SIZE, fontproperties=font_prop, va='top')
-        y -= LINE_HEIGHT
+        c.drawString(margin_left_pt, y, line)
+        y -= line_height_pt
 
-    filename = f"{uuid.uuid4()}.png"
-    plt.savefig(filename, bbox_inches='tight', pad_inches=0.4)
-    plt.close()
+    c.save()
 
-    # Return the file directly
-    response = send_file(filename, mimetype='image/png')
-    # Optionally cleanup file after sending
+    response = send_file(filename, mimetype='application/pdf')
     try:
         os.remove(filename)
     except Exception:
